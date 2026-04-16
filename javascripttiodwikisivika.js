@@ -1,7 +1,7 @@
 javascript:(function(){
 
-  // ===== LIST KEGIATAN =====
-  var list = [
+// ===== LIST KEGIATAN (60) =====
+var list = [
 "penyusunan kerangka kerja sistem informasi aparatur sipil negara sesuai pedoman dan peraturan perundang-undangan",
 "menyusun kerangka kerja sistem penghargaan aparatur sipil negara sesuai pedoman dan peraturan perundang-undangan",
 "penyusunan kerangka kerja sistem manajemen SDM aparatur strategik berbasis kompetensi atau talenta/reformasi birokrasi/zona integritas sesuai pedoman dan peraturan perundang-undangan",
@@ -64,25 +64,49 @@ javascript:(function(){
 "melaksanakan asistensi dan konsultasi pengelolaan sistem kepegawaian aparatur sipil negara/sumber daya manusia aparatur"
 ];
 
-  // ambil random kegiatan
-  var kegiatan = list[Math.floor(Math.random()*list.length)];
+// ===== SHUFFLE =====
+function shuffle(arr){
+  for (let i = arr.length - 1; i > 0; i--) {
+    let j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
 
-  // tanggal default hari ini
-  var today = new Date();
-  var dd = String(today.getDate()).padStart(2,'0');
-  var mm = String(today.getMonth()+1).padStart(2,'0');
-  var yyyy = today.getFullYear();
-  var defaultDate = dd+'-'+mm+'-'+yyyy;
+var kegiatanList = shuffle(list).slice(0,8);
 
-  var input = prompt('Masukkan tanggal (DD-MM-YYYY)', defaultDate);
-  if(!input) return;
+// ===== JAM =====
+var jamList = [
+['07:30','08:30'],
+['08:30','09:30'],
+['09:30','10:30'],
+['10:30','11:30'],
+['11:30','13:00'],
+['13:00','14:00'],
+['14:00','15:00'],
+['15:00','16:00']
+];
 
-  var t = input.split('-');
-  var d = parseInt(t[0]);
-  var m = parseInt(t[1]) - 1;
-  var y = parseInt(t[2]);
+// ===== TANGGAL =====
+var today = new Date();
+var dd = String(today.getDate()).padStart(2,'0');
+var mm = String(today.getMonth()+1).padStart(2,'0');
+var yyyy = today.getFullYear();
+var defaultDate = dd+'-'+mm+'-'+yyyy;
 
-  // klik tombol
+var input = prompt('Masukkan tanggal (DD-MM-YYYY)', defaultDate);
+if(!input) return;
+
+var t = input.split('-');
+var d = parseInt(t[0]);
+var m = parseInt(t[1]) - 1;
+var y = parseInt(t[2]);
+
+// ===== LOOP =====
+function isiForm(i){
+
+  if(i >= 8) return;
+
   document.querySelector('.ls-modal').click();
 
   var cek = setInterval(function(){
@@ -92,8 +116,8 @@ javascript:(function(){
       var p = $('#tgl').pickadate('picker');
       p.set('select',[y,m,d]);
 
-      $('#jam1').val('07:30');
-      $('#jam2').val('08:30');
+      $('#jam1').val(jamList[i][0]);
+      $('#jam2').val(jamList[i][1]);
 
       $('input[name="kategori"][value="2"]').prop('checked',true).trigger('change');
       $('#divskp').show();
@@ -103,11 +127,23 @@ javascript:(function(){
 
       $('#penilai').val($('#penilai option:eq(1)').val()).trigger('change');
 
-      // isi kegiatan & uraian SAMA
-      $('#kegiatan').val(kegiatan);
-      $('textarea[name="uraian"]').val(kegiatan);
+      var keg = kegiatanList[i];
 
+      $('#kegiatan').val(keg);
+      $('textarea[name="uraian"]').val(keg);
+
+      setTimeout(function(){
+        $('#formmodal').submit();
+
+        setTimeout(function(){
+          isiForm(i+1);
+        }, 2000);
+
+      }, 1000);
     }
   },300);
+}
+
+isiForm(0);
 
 })();
