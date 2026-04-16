@@ -1,7 +1,40 @@
-javascript:(function(){
+(function(){
 
-// ===== LIST KEGIATAN (60) =====
-var list = [
+// ================= CONFIG =================
+const KEY = 'auto_skp_progress';
+
+const JAM_LIST = [
+  ['07:30','08:30'],
+  ['08:30','09:30'],
+  ['09:30','10:30'],
+  ['10:30','11:30'],
+  ['11:30','13:00'],
+  ['13:00','14:00'],
+  ['14:00','15:00'],
+  ['15:00','16:00']
+];
+
+// ================= UTIL =================
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+const waitFor = async (selector, timeout = 10000) => {
+  const start = Date.now();
+  while (!document.querySelector(selector)) {
+    if (Date.now() - start > timeout) throw new Error('Timeout: ' + selector);
+    await sleep(200);
+  }
+};
+
+const shuffle = (arr) => {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+};
+
+// ================= DATA =================
+const KEGIATAN = [
 "penyusunan kerangka kerja sistem informasi aparatur sipil negara sesuai pedoman dan peraturan perundang-undangan",
 "menyusun kerangka kerja sistem penghargaan aparatur sipil negara sesuai pedoman dan peraturan perundang-undangan",
 "penyusunan kerangka kerja sistem manajemen SDM aparatur strategik berbasis kompetensi atau talenta/reformasi birokrasi/zona integritas sesuai pedoman dan peraturan perundang-undangan",
@@ -64,86 +97,68 @@ var list = [
 "melaksanakan asistensi dan konsultasi pengelolaan sistem kepegawaian aparatur sipil negara/sumber daya manusia aparatur"
 ];
 
-// ===== SHUFFLE =====
-function shuffle(arr){
-  for (let i = arr.length - 1; i > 0; i--) {
-    let j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
+// ================= STATE =================
+let state = JSON.parse(localStorage.getItem(KEY) || '{}');
+
+// init
+if (!state.index) {
+  const today = new Date();
+  const def = `${String(today.getDate()).padStart(2,'0')}-${String(today.getMonth()+1).padStart(2,'0')}-${today.getFullYear()}`;
+
+  const input = prompt('Masukkan tanggal (DD-MM-YYYY)', def);
+  if (!input) return;
+
+  const [d,m,y] = input.split('-').map(Number);
+
+  state = {
+    index: 0,
+    d, m: m-1, y,
+    kegiatan: shuffle([...KEGIATAN]).slice(0,8)
+  };
+
+  localStorage.setItem(KEY, JSON.stringify(state));
+}
+
+// ================= MAIN =================
+(async function run(){
+
+  if (state.index >= 8) {
+    localStorage.removeItem(KEY);
+    alert('✅ Selesai 8 data');
+    return;
   }
-  return arr;
-}
 
-var kegiatanList = shuffle(list).slice(0,8);
+  // klik tambah
+  document.querySelector('.ls-modal')?.click();
 
-// ===== JAM =====
-var jamList = [
-['07:30','08:30'],
-['08:30','09:30'],
-['09:30','10:30'],
-['10:30','11:30'],
-['11:30','13:00'],
-['13:00','14:00'],
-['14:00','15:00'],
-['15:00','16:00']
-];
+  // tunggu form
+  await waitFor('#tgl');
 
-// ===== TANGGAL =====
-var today = new Date();
-var dd = String(today.getDate()).padStart(2,'0');
-var mm = String(today.getMonth()+1).padStart(2,'0');
-var yyyy = today.getFullYear();
-var defaultDate = dd+'-'+mm+'-'+yyyy;
+  // isi form
+  const picker = $('#tgl').pickadate('picker');
+  picker.set('select',[state.y,state.m,state.d]);
 
-var input = prompt('Masukkan tanggal (DD-MM-YYYY)', defaultDate);
-if(!input) return;
+  $('#jam1').val(JAM_LIST[state.index][0]);
+  $('#jam2').val(JAM_LIST[state.index][1]);
 
-var t = input.split('-');
-var d = parseInt(t[0]);
-var m = parseInt(t[1]) - 1;
-var y = parseInt(t[2]);
+  $('input[name="kategori"][value="2"]').prop('checked',true).trigger('change');
+  $('#divskp').show();
 
-// ===== LOOP =====
-function isiForm(i){
+  const skp = $('#skpid option').not('[value=""]').eq(2).val();
+  $('#skpid').val(skp).trigger('change');
 
-  if(i >= 8) return;
+  $('#penilai').val($('#penilai option:eq(1)').val()).trigger('change');
 
-  document.querySelector('.ls-modal').click();
+  const keg = state.kegiatan[state.index];
+  $('#kegiatan').val(keg);
+  $('textarea[name="uraian"]').val(keg);
 
-  var cek = setInterval(function(){
-    if ($('#tgl').length) {
-      clearInterval(cek);
+  // submit
+  await sleep(800);
+  state.index++;
+  localStorage.setItem(KEY, JSON.stringify(state));
+  $('#formmodal').submit();
 
-      var p = $('#tgl').pickadate('picker');
-      p.set('select',[y,m,d]);
-
-      $('#jam1').val(jamList[i][0]);
-      $('#jam2').val(jamList[i][1]);
-
-      $('input[name="kategori"][value="2"]').prop('checked',true).trigger('change');
-      $('#divskp').show();
-
-      var skp = $('#skpid option').not('[value=""]').eq(2).val();
-      $('#skpid').val(skp).trigger('change');
-
-      $('#penilai').val($('#penilai option:eq(1)').val()).trigger('change');
-
-      var keg = kegiatanList[i];
-
-      $('#kegiatan').val(keg);
-      $('textarea[name="uraian"]').val(keg);
-
-      setTimeout(function(){
-        $('#formmodal').submit();
-
-        setTimeout(function(){
-          isiForm(i+1);
-        }, 2000);
-
-      }, 1000);
-    }
-  },300);
-}
-
-isiForm(0);
+})();
 
 })();
